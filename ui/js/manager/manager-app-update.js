@@ -159,7 +159,7 @@
 
         const ok = await I.dependencies.confirmAction(
             "Update Llama GUI",
-            `Install the ${describeAppUpdateTarget(status)} from GitHub now? Python I.dependencies from requirements.txt will be installed after the update. The app may need a restart after updating.`,
+            `Install the ${describeAppUpdateTarget(status)} from GitHub now? Python dependencies from requirements.txt will be installed after the update. The app may need a restart after updating.`,
             "Update"
         );
         if (!ok) return;
@@ -173,7 +173,7 @@
             });
             if (result.updated) {
                 if (result.dependency_error) {
-                    showAppUpdateStatus("warning", "App updated, but dependency installation failed: " + result.dependency_error + " Restart Llama GUI after fixing I.dependencies.");
+                    showAppUpdateStatus("warning", "App updated, but dependency installation failed: " + result.dependency_error + " Restart Llama GUI after fixing dependencies.");
                 } else {
                     const depText = result.dependencies_installed
                         ? " Dependencies were installed."
