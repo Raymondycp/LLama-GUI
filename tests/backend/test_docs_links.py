@@ -48,13 +48,7 @@ LOCAL_ONLY_DIRS = ("docs/design-docs/",)
 
 # Deliberate exemptions. test_exempt_docs_exist asserts every entry still
 # exists on disk, so deleting an exempted doc flags the stale entry.
-EXEMPT_DOCS = {
-    # Archived implementation record; intentionally references pre-rename
-    # files like ui/js/chat-ui.js.
-    "docs/frontend-module-split-plan.md",
-    # Same, for the Tier-2 frontend split.
-    "docs/frontend-maintainability-tier-2-plan.md",
-}
+EXEMPT_DOCS = set()
 
 # llama.cpp's own files that collide with this repo's tests/ prefix. They
 # are referenced by docs/upstream-changes.md fork notes, never by this

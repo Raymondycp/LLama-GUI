@@ -13,7 +13,7 @@
 //   4. Package assembly order: a package's *-main.js file loads after every
 //      other file in that package.
 //
-// See docs/frontend-maintainability-tier-2-plan.md ("Session 0").
+// Frontend module-boundary guardrails established during the Tier 2 refactor.
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");

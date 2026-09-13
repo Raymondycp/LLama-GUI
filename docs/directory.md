@@ -1312,6 +1312,4 @@ Prefer `rg` for local search. On Windows/PowerShell, use patterns like `rg -n "p
 | `docs/chat-popout-capabilities.md` | Phase 1 pop-out capability fixture evidence |
 | `docs/upstream-changes.md` | llama.cpp upstream changes needing coordinated GUI updates |
 | `docs/software-versioning-policy.md` | CalVer versioning and stable-release policy |
-| `docs/frontend-module-split-plan.md` | Completed Tier-1 frontend module-split recipe and implementation record |
-| `docs/frontend-maintainability-tier-2-plan.md` | Completed Tier-2 frontend maintainability plan: Sessions 0–10 complete; module boundaries, implementation order, and verification gates |
 | `docs/images/` | Screenshots used by README.md |
