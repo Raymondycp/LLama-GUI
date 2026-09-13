@@ -249,7 +249,9 @@
                 const editButton = document.createElement("button");
                 editButton.type = "button";
                 editButton.className = "btn btn-xs chat-response-action";
-                editButton.textContent = "Edit and resend";
+                editButton.title = "Edit and resend";
+                editButton.setAttribute("aria-label", "Edit and resend");
+                editButton.innerHTML = '<span class="icon icon-sm" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m16 3 5 5-13 13H3v-5L16 3Z"/><path d="m13 6 5 5"/></svg></span>';
                 editButton.addEventListener("click", () => { void editUserMessage(index); });
                 footer.appendChild(editButton);
                 bubble.closest(".chat-message-content")?.appendChild(footer);

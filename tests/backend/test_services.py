@@ -3684,7 +3684,15 @@ class StartHfModelDownloadPathTests(unittest.TestCase):
             def fake_urlopen(req, timeout=60):
                 return FakeDownloadResponse([payload], content_length=len(payload))
 
+            class ImmediateThread:
+                def __init__(self, *, target, daemon):
+                    self.target = target
+
+                def start(self):
+                    self.target()
+
             with (
+                mock.patch.object(hf_service.threading, "Thread", ImmediateThread),
                 mock.patch.object(
                     hf_service,
                     "get_hf_download_metadata",
@@ -3705,13 +3713,6 @@ class StartHfModelDownloadPathTests(unittest.TestCase):
                     token=None,
                     urlopen=fake_urlopen,
                 )
-                for _ in range(50):
-                    snap = hf_service.get_model_download_snapshot(ctx)
-                    if snap["status"] in {"done", "error", "cancelled"}:
-                        break
-                    import time
-
-                    time.sleep(0.02)
 
             snap = hf_service.get_model_download_snapshot(ctx)
             self.assertEqual(snap["status"], "done", snap)

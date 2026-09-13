@@ -25,6 +25,7 @@
         let mainLayout = null;
         let originalFocus = null;
         let closedCheckTimer = null;
+        let recoveryPending = false;
         const storage = getStorage({ window: target });
         const logger = target.console;
         const getStatus = () => safeRead(options.getLatestStatus, null, logger);
@@ -348,7 +349,12 @@
 
         async function recoverMain() {
             const locked = await coordinator.acquireOwnership({ ifAvailable: true, activate: false });
-            if (!locked) return false;
+            if (!locked) {
+                if (coordinator.getState().reason === "lock-busy") {
+                    setHostStatus("Chat could not be recovered because another Llama GUI tab or window still owns it. Close the other page, including any open in another launcher or Codex task, then try Recover chat here again.");
+                }
+                return false;
+            }
             const record = coordinator.readRecovery();
             if (!record.ok && record.reason !== "empty" && record.reason !== "invalidated") {
                 if (record.reason !== "invalid-recovery") {
@@ -410,8 +416,22 @@
         target.document.getElementById("btn-chat-show-window")?.addEventListener("click", () => {
             if (!isClosedWindow(popup)) popup.focus();
         });
-        target.document.getElementById("btn-chat-return-here")?.addEventListener("click", () => {
-            void (detached ? requestReturn() : recoverMain());
+        target.document.getElementById("btn-chat-return-here")?.addEventListener("click", async () => {
+            if (recoveryPending) return;
+            recoveryPending = true;
+            setHostStatus("");
+            try {
+                const recovered = await (detached ? requestReturn() : recoverMain());
+                if (recovered) setHostStatus("");
+                else if (coordinator.getState().reason !== "lock-busy") {
+                    setHostStatus("Chat could not be restored. Check that browser storage is available, then reload this page and try again.");
+                }
+            } catch (error) {
+                logger?.warn?.("Chat recovery failed", error);
+                setHostStatus("Chat recovery failed. Reload this page and try again.");
+            } finally {
+                recoveryPending = false;
+            }
         });
         if (typeof target.addEventListener === "function") {
             target.addEventListener("pagehide", () => {
@@ -438,10 +458,15 @@
                 if (typeof options.initializeChat === "function") await options.initializeChat();
                 const outcome = await coordinator.initialize({ acquire: true, recover: true });
                 if (!outcome.ok && (outcome.reason === "lock-busy" || outcome.reason === "recovery-failed"
-                    || outcome.reason === "invalid-recovery" || outcome.reason === "recovery-reset-failed")) {
+                    || outcome.reason === "invalid-recovery" || outcome.reason === "recovery-reset-failed"
+                    || outcome.reason === "lock-error" || outcome.reason === "activation-failed")) {
                     showObserverRecovery(outcome.reason === "lock-busy"
                         ? "Chat is active in another window. Close it, then recover the saved workspace here."
                         : "The saved Chat workspace needs recovery. Choose Recover chat here to start with a safe workspace.");
+                    if (outcome.reason !== "lock-busy") {
+                        const heading = target.document.getElementById("chat-window-placeholder-heading");
+                        if (heading) heading.textContent = "Chat needs recovery";
+                    }
                 }
                 return outcome;
             } catch (error) {

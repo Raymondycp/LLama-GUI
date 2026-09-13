@@ -443,6 +443,61 @@ test("Chat recovery focuses a safe control when no server disables the composer"
     if (!popup.isClosed()) await popup.waitForEvent("close", { timeout: 3_000 });
 });
 
+test("Recover chat here explains ownership contention and retries after the owner closes", { timeout: 60_000 }, async t => {
+    const server = await startUiServer();
+    const browser = await chromium.launch({ headless: true });
+    const context = await browser.newContext();
+    await installInitScript(context, representativeConversation(), randomUUID());
+    const { calls } = await installApiRoutes(context);
+    t.after(async () => {
+        await context.close();
+        await browser.close();
+        await server.close();
+    });
+
+    const owner = await context.newPage();
+    await owner.goto(server.baseUrl, { waitUntil: "domcontentloaded" });
+    await selectChat(owner);
+    await owner.locator("#chat-input").fill("Keep this unsent draft during recovery.");
+    const observer = await context.newPage();
+    await observer.goto(server.baseUrl, { waitUntil: "domcontentloaded" });
+    await observer.locator('.nav-item[data-section="chat"]').click();
+    await observer.locator(CHAT_RETURN_HERE).click();
+    await observer.locator(CHAT_HOST_STATUS).waitFor({ state: "visible" });
+    assert.match(await observer.locator(CHAT_HOST_STATUS).innerText(), /another Llama GUI tab or window still owns it/);
+    assert.equal(await observer.locator("#chat-layout").isVisible(), false);
+    assert.equal(await owner.locator("#chat-input").inputValue(), "Keep this unsent draft during recovery.");
+
+    await owner.close();
+    await observer.locator(CHAT_RETURN_HERE).click();
+    await observer.locator("#chat-layout").waitFor({ state: "visible" });
+    assert.equal(await observer.locator("#chat-input").inputValue(), "Keep this unsent draft during recovery.");
+    assert.equal(await observer.locator("#chat-input").isEnabled(), true);
+    assert.equal(await observer.locator(CHAT_HOST_STATUS).isVisible(), false);
+    assert.equal(callsFor(calls, "/api/chat/completions").length, 0, "recovery must not send the draft");
+
+    await observer.close();
+    const failed = await context.newPage();
+    await failed.addInitScript(() => {
+        const request = navigator.locks.request.bind(navigator.locks);
+        let failures = 2;
+        navigator.locks.request = (...args) => {
+            if (failures-- > 0) return Promise.reject(new Error("Fixture lock service failure"));
+            return request(...args);
+        };
+    });
+    await failed.goto(server.baseUrl, { waitUntil: "domcontentloaded" });
+    await failed.locator('.nav-item[data-section="chat"]').click();
+    assert.equal(await failed.locator("#chat-window-placeholder-heading").innerText(), "Chat needs recovery");
+    await failed.locator(CHAT_RETURN_HERE).click();
+    await failed.locator(CHAT_HOST_STATUS).waitFor({ state: "visible" });
+    assert.match(await failed.locator(CHAT_HOST_STATUS).innerText(), /Chat could not be restored/);
+    await failed.locator(CHAT_RETURN_HERE).click();
+    await failed.locator("#chat-layout").waitFor({ state: "visible" });
+    assert.equal(await failed.locator("#chat-input").inputValue(), "Keep this unsent draft during recovery.");
+    assert.equal(await failed.locator(CHAT_HOST_STATUS).isVisible(), false);
+});
+
 test("Chat initialization failure leaves an unavailable shell without breaking the GUI", { timeout: 60_000 }, async t => {
     const server = await startUiServer();
     const browser = await chromium.launch({ headless: true });
