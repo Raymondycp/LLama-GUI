@@ -479,7 +479,7 @@ async function runAbortScenario(action) {
         ]);
         const userBubble = elements.get("chat-messages").querySelectorAll(".chat-message")
             .find(element => element._classes.has("user"));
-        assert.equal(userBubble.querySelector(".chat-response-action").textContent, "Edit and resend");
+        assert.equal(userBubble.querySelector(".chat-response-action").getAttribute("aria-label"), "Edit and resend");
     }
 
     // H2: switching to a stored conversation mid-stream must not finalize the
