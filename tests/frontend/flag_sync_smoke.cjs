@@ -1647,6 +1647,12 @@ async function runScenario(browser, port, verify) {
         const metricsHeaders = [];
         const slotsHeaders = [];
         const pageErrors = [];
+        const lifecycleWarnings = [];
+        page.on("console", message => {
+            if (message.type() === "warning" && message.text().includes("Process lifecycle subscriber failed")) {
+                lifecycleWarnings.push(message.text());
+            }
+        });
         const releaseRequests = [];
         const activateCustomRequests = [];
         let custom02Ready = false;
@@ -2092,6 +2098,7 @@ async function runScenario(browser, port, verify) {
         await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "domcontentloaded" });
         await page.waitForFunction(() => window.LlamaGui?.flagCore && window.LlamaGui?.configFlagsUi);
         await page.waitForSelector("#flag-ctx_size", { state: "attached" });
+        assert.deepEqual(lifecycleWarnings, [], "initial lifecycle rendering must have configured dependencies");
 
         if (verify) {
             await verify(page);

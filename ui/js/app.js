@@ -211,6 +211,16 @@ modelSwitchUi.configure({
     getPresetFingerprint: entry => entry && entry.preset_fingerprint || "",
     switchSlot: switchModelSlot,
 });
+// subscribe() immediately renders Chat along with the other runtime panels.
+chatUi.configure({
+    flagCore,
+    confirmAction: dialogs.confirmAction,
+    getLatestStatus: manager.getLatestStatus,
+    getLifecycleSnapshot: () => processLifecycle.getSnapshot(),
+    snapshotStatsBaseline,
+    switchTab,
+    getApiAuthorizationHeaders,
+});
 processLifecycle.subscribe(handleLifecycleSnapshot);
 }
 
@@ -1016,16 +1026,6 @@ function wireCommandCopyButton(buttonId, previewId) {
 }
 
 // Chat Tab
-
-if (window.LlamaGui.chatWindow?.isDetachedView?.() !== true) chatUi.configure({
-    flagCore,
-    confirmAction: dialogs.confirmAction,
-    getLatestStatus: manager.getLatestStatus,
-    getLifecycleSnapshot: () => processLifecycle.getSnapshot(),
-    snapshotStatsBaseline,
-    switchTab,
-    getApiAuthorizationHeaders,
-});
 
 function refreshChatSidebarUI() {
     chatUi.refreshSidebarUI();
