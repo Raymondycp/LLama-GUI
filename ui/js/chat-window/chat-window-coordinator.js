@@ -846,7 +846,7 @@
                 return result(true, "single-window", { popoutAvailable: false });
             }
             if (initOptions.acquire) {
-                if (!await acquireOwnership({ ifAvailable: true, allowSingleWindow: false, activate: false })) return result(false, "lock-busy");
+                if (!await acquireOwnership({ ifAvailable: true, allowSingleWindow: false, activate: false })) return result(false, state.reason || "activation-failed");
                 const durable = readRecovery();
                 if (durable.record && Number.isInteger(durable.record.revision)) revision = Math.max(revision, durable.record.revision);
                 if (initOptions.recover && durable.ok && durable.record && !durable.record.invalidated) {
