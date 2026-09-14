@@ -4,6 +4,14 @@ Track announced llama.cpp changes that may require coordinated Llama-GUI updates
 
 ## Pending
 
+### Direct reads for lazy embedding tables (`--lazy-mode on-direct`)
+
+- **Upstream:** [ggml-org/llama.cpp#28136](https://github.com/ggml-org/llama.cpp/pull/28136).
+- **Status:** Open, not merged (checked 2026-09-14). Current upstream [`common/arg.cpp`](https://github.com/ggml-org/llama.cpp/blob/master/common/arg.cpp) accepts only `auto`, `on`, and `off` for `--lazy-mode` / `-lzm`; it rejects `on-direct`. Using the proposed value currently requires a custom build containing the PR.
+- **Behavior:** Reads needed rows from eligible per-layer embedding tables explicitly instead of relying on memory-mapped page faults. This aims to improve prompt processing when the tables are not already cached; performance depends on hardware and workload.
+- **Local handling:** Configure → Advanced already exposes **Lazy Mode** (`tensor_read_lazy` in `ui/js/flags/definitions-server.js`) with Auto, On, and Off. Keep those upstream-compatible choices for now.
+- **Recheck after merge:** Verify the final enum values, platform support, load-mode requirements, and first supported release before adding `on-direct` to the existing dropdown and updating its help text. Confirm support using the installed binary's `--help` and account for older builds that reject the value.
+
 ### Legacy load flags removed in favor of --load-mode - - - Done
 
 - **Upstream:** b10875, Sep 9 (PR #28334): `--mmap` / `--no-mmap`, `--mlock`, and `-dio` / `-ndio` / `--direct-io` / `--no-direct-io` removed from `llama-cli` / `llama-server` in favor of `--load-mode`. Installed b10917 `--help` output confirms `llama-bench` / `llama-perplexity` also only advertise `--load-mode`.
