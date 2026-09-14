@@ -38,7 +38,8 @@ def launch(request, response, ctx):
         response.error("args must be an array", 400)
         return
     launch_settings = body.get("launch_settings")
-    result = process_manager.launch_process(ctx, tool, args, launch_context, launch_settings)
+    env_options = {"env": body["env"]} if "env" in body else {}
+    result = process_manager.launch_process(ctx, tool, args, launch_context, launch_settings, **env_options)
     if "error" in result:
         response.error(result.get("error", "Launch failed"), 400)
     else:
@@ -52,6 +53,7 @@ def preflight_launch(request, response, ctx):
         body.get("tool", "llama-server"),
         body.get("args"),
         body.get("fingerprint_data"),
+        **({"env": body["env"]} if "env" in body else {}),
     )
     if "error" in result:
         response.error(result.get("error", "Launch preflight failed"), 400)
@@ -75,7 +77,7 @@ def estimate_memory(request, response, ctx):
     body = request.body or {}
     tool = body.get("tool", "llama-cli")
     args = body.get("args", [])
-    result = process_manager.estimate_memory(ctx, tool, args)
+    result = process_manager.estimate_memory(ctx, tool, args, **({"env": body["env"]} if "env" in body else {}))
     if "error" in result:
         response.error(result.get("error", "Memory estimate failed"), 400, extra=result)
     else:

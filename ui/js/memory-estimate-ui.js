@@ -72,7 +72,7 @@
             const data = await deps.fetchJson("/api/estimate-memory", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ tool: deps.flagCore.getCurrentTool(), args }),
+                body: JSON.stringify({ tool: deps.flagCore.getCurrentTool(), args, env: result.env }),
             });
             if (requestId !== memoryEstimateRequestId) return;
             if (!data || data.error) {

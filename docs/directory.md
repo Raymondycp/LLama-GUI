@@ -1205,6 +1205,30 @@ The Configure tab includes an advanced `Custom Launch Args` textarea near the co
 
 ---
 
+## Environment Variables
+
+The **Environment Variables** panel sits below Custom Launch Args and above the
+running server address. It stores literal, newline-separated `NAME=value` entries
+in shared flag state as `custom_env`, including preset save/update/load/import/export.
+Blank lines are ignored, surrounding whitespace is trimmed, empty values are kept,
+and duplicate names or malformed entries block launch with an inline error. Input
+is limited to 16,000 characters. Names must use uppercase `LLAMA_` or `GGML_`
+prefixes; `LLAMA_GUI_` and `LLAMA_ARG_` are excluded so GUI configuration and
+CLI-managed options (including host, port, and credentials) stay in their existing controls.
+No shell parsing, expansion, or execution occurs in values.
+
+`flagCore.parseEnvironmentVariables()` supplies the `env` object carried through
+manual/Quick Launch, restart/model-switch preflight and launch, memory estimation,
+and Benchmarking from the selected configuration or preset. The backend validates
+it independently before merging it into a copy of the inherited process environment,
+preserving runtime library paths and leaving `os.environ` untouched. Changes apply
+on the next child-process launch; removing an override restores inheritance.
+Runtime launch metadata records `custom_env` so Configure can report pending changes;
+the per-flag comparison and revert controls do not include environment variables.
+The command preview remains the argument command; the separate Environment Variables
+field specifies the additional process environment. Variable support depends on the
+installed llama.cpp build/backend, and is not inferred from a successful launch.
+
 ## Configuration Search
 
 The Configure tab has a search input that filters visible flags in real-time.

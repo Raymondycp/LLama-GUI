@@ -297,6 +297,7 @@ async function resolveModelSwitchTarget(slotId) {
         body: JSON.stringify({
             tool: "llama-server",
             args: launch.args,
+            env: launch.env,
             fingerprint_data: presetData,
         }),
     });
@@ -307,6 +308,7 @@ async function resolveModelSwitchTarget(slotId) {
     return {
         tool: "llama-server",
         args: launch.args,
+        env: launch.env,
         launch_settings: launchSettings,
         launch_context: {
             source: "model-switcher",
@@ -366,6 +368,7 @@ function setCustomLaunchArgsMessages(result = {}) {
 
     status.textContent = "";
     status.className = "custom-args-status";
+    if (result.errorField === "custom_env") return;
 
     if (result.error) {
         status.textContent = result.error;
@@ -844,7 +847,7 @@ function buildManualLaunchRequest() {
     if (!flagCore.hasLaunchModelArg(args)) {
         throw new Error("Select a model or provide a remote model source before launching.");
     }
-    return { tool, args, launch_settings: flagCore.captureLaunchSettings() };
+    return { tool, args, env: result.env, launch_settings: flagCore.captureLaunchSettings() };
 }
 
 async function launchLlama() {

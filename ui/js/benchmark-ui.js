@@ -457,7 +457,12 @@
             excluded.push({ label: "Custom Launch Args", reason: "Excluded for benchmark safety" });
         }
 
-        return { tool, args, applied, excluded, error: null, command: formatCommand(tool, args) };
+        const environment = root.flagCore.parseEnvironmentVariables(flags.custom_env);
+        if (environment.error) return { tool, args, applied, excluded, error: environment.error };
+        for (const [name, value] of Object.entries(environment.env)) {
+            applied.push({ label: name, value });
+        }
+        return { tool, args, env: environment.env, applied, excluded, error: null, command: formatCommand(tool, args) };
     }
 
     function renderList(container, items, emptyText) {
@@ -921,7 +926,7 @@
         appendOutput(result.command);
         appendOutput("---");
         const outcome = await processLifecycle.launch(
-            { tool: result.tool, args: result.args },
+            { tool: result.tool, args: result.args, env: result.env },
             {
                 operation: "benchmark-launch",
                 invalidateOutput: stopOutputPolling,

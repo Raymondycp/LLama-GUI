@@ -567,6 +567,8 @@
             ? launchState.flags
             : {};
         const model = String(launchState.model || "");
+        const environment = parseEnvironmentVariables(values.custom_env);
+        if (environment.error) return { args, error: environment.error, errorField: "custom_env", warnings };
         if (tool !== "llama-server" && tool !== "llama-cli") {
             return { args, error: "Unsupported llama.cpp tool.", warnings };
         }
@@ -719,7 +721,31 @@
             }
         }
 
-        return { args, error: null, warnings };
+        return { args, env: environment.env, error: null, warnings };
+    }
+
+    function parseEnvironmentVariables(raw) {
+        const env = {};
+        if (raw === undefined || raw === null || raw === "") return { env, error: null };
+        if (typeof raw !== "string" || raw.length > 16000) {
+            return { env, error: "Environment Variables must be text up to 16,000 characters." };
+        }
+        const lines = raw.split(/\r?\n/);
+        for (let index = 0; index < lines.length; index++) {
+            const line = lines[index].trim();
+            if (!line) continue;
+            const separator = line.indexOf("=");
+            const name = line.slice(0, separator).trim();
+            if (separator < 1 || !/^(LLAMA_|GGML_)[A-Z0-9_]+$/.test(name)
+                || /^(LLAMA_GUI_|LLAMA_ARG_)/.test(name) || /[\0\r]/.test(line)) {
+                return { env: {}, error: `Environment Variables line ${index + 1}: use LLAMA_ or GGML_ names and NAME=value. LLAMA_GUI_ and LLAMA_ARG_ settings belong in the existing controls.` };
+            }
+            if (Object.prototype.hasOwnProperty.call(env, name)) {
+                return { env: {}, error: `Environment Variables line ${index + 1}: duplicate name ${name}.` };
+            }
+            env[name] = line.slice(separator + 1).trim();
+        }
+        return { env, error: null };
     }
 
     function getLaunchArgs() {
@@ -734,8 +760,8 @@
     // the request is in flight. These are GUI inputs, not resolved runtime values.
     function captureLaunchSettings(state = { tool: currentTool, model: selectedModel, flags: flagValues }) {
         const values = state.flags || {};
-        const flags = {};
-        let remaining = 120000;
+        const flags = values.custom_env ? { custom_env: values.custom_env } : {};
+        let remaining = 120000 - JSON.stringify(flags).length;
         if (String(state.model || "").length > 4096 || (modelDirInfo && modelDirInfo.models_arg_root.length > 4096)) return undefined;
         for (const flag of getFlags()) {
             if (flag.sensitive || (flag.tool !== "both" && flag.tool !== state.tool.replace("llama-", ""))) continue;
@@ -840,6 +866,7 @@
         isValidGpuLayersValue,
         normalizeGpuLayersValue,
         parseCustomLaunchArgs,
+        parseEnvironmentVariables,
         hasSensitiveCustomArgs,
         normalizeModelRelPath,
         setModelDirInfo,

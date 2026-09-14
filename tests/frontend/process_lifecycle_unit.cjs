@@ -102,7 +102,8 @@ async function testReadinessProgression() {
         postReady: async value => hooks.push(["ready", value.generation]),
     });
 
-    const response = await lifecycle.launch({ tool: "llama-server", args: ["-m", "models/model-1.gguf"], launch_settings: settings });
+    const env = { GGML_OP_OFFLOAD_MIN_BATCH: "512" };
+    const response = await lifecycle.launch({ tool: "llama-server", args: ["-m", "models/model-1.gguf"], launch_settings: settings, env });
 
     assert.equal(response.ok, true);
     assert.equal(lifecycle.getSnapshot().phase, "ready");
@@ -112,6 +113,7 @@ async function testReadinessProgression() {
     assert.deepEqual(hooks, [["output", 4, 1], ["stats", 1], ["ready", 1]]);
     assert.equal(calls.filter(([url]) => url.startsWith("/api/llama/health")).length, 3);
     assert.deepEqual(JSON.parse(calls.find(([url]) => url === "/api/launch")[1].body).launch_settings, settings);
+    assert.deepEqual(JSON.parse(calls.find(([url]) => url === "/api/launch")[1].body).env, env);
     const copied = lifecycle.getSnapshot();
     copied.activeRuntime.launch_settings.flags.ctx_size = 999;
     assert.equal(lifecycle.getSnapshot().activeRuntime.launch_settings.flags.ctx_size, 8192);

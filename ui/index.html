@@ -835,6 +835,19 @@
                 <div id="custom-launch-args-status" class="custom-args-status" aria-live="polite"></div>
             </div>
 
+            <div class="environment-variables-panel">
+                <div class="custom-args-header">
+                    <div>
+                        <label class="form-label" for="environment-variables">Environment Variables</label>
+                        <p id="environment-variables-help" class="help-text">Enter one llama.cpp runtime variable per line as NAME=value. Use LLAMA_ or GGML_ names; values are literal, without shell quotes or export. Configure LLAMA_ARG_ options through the existing argument controls.</p>
+                    </div>
+                    <span class="badge badge-neutral">Advanced</span>
+                </div>
+                <textarea id="environment-variables" rows="3" maxlength="16000" spellcheck="false" aria-describedby="environment-variables-help environment-variables-note environment-variables-status" placeholder="LLAMA_MMAP_RANDOM=1&#10;GGML_OP_OFFLOAD_MIN_BATCH=512"></textarea>
+                <p id="environment-variables-note" class="help-text">Saved with presets. Overrides inherited values for the next llama.cpp launch; restart the running process to apply changes. Support depends on your build and backend.</p>
+                <div id="environment-variables-status" class="custom-args-status" aria-live="polite"></div>
+            </div>
+
             <div id="server-address" class="server-address hidden">
                 <span class="server-label">Server Address:</span>
                 <a id="server-url" href="#" target="_blank" class="server-link"></a>

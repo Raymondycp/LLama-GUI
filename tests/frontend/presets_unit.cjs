@@ -58,6 +58,7 @@ const overrideIds = vm.runInContext(
 assert.equal(JSON.stringify(Array.from(overrideIds)), JSON.stringify(["ctx_size"]));
 
 const normalizeImportedPresetData = context.window.LlamaGui.presets.normalizeImportedPresetData;
+assert.equal(normalizeImportedPresetData({ flags: { custom_env: "GGML_OP_OFFLOAD_MIN_BATCH=512" } }).flags.custom_env, "GGML_OP_OFFLOAD_MIN_BATCH=512");
 const presetApi = context.window.LlamaGui.presets;
 
 for (const custom_args of ['"--api-key" secret', "'--api-key'=secret", '--api-"key" secret',

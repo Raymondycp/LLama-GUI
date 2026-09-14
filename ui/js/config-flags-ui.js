@@ -53,6 +53,10 @@
     }
 
     function initConfigControls() {
+        const environmentInput = document.getElementById("environment-variables");
+        environmentInput?.addEventListener("input", () => {
+            getFlagCore().setFlagValue("custom_env", environmentInput.value.trim() ? environmentInput.value : undefined);
+        });
         const search = document.getElementById("config-search");
         if (!search) return;
 
@@ -169,6 +173,7 @@
                         body: JSON.stringify({
                             tool: request.tool,
                             args: request.args,
+                            env: request.env,
                             fingerprint_data: { tool: request.tool, model: request.launch_settings?.model || "" },
                         }),
                     });
@@ -581,6 +586,9 @@
                 notes.push("Custom launch arguments can override the settings shown here.");
             }
             if (comparison.modelChanged) notes.push("You’ve selected a different model.");
+            if ((runtime.launch_settings.flags.custom_env || "") !== (getFlagValues().custom_env || "")) {
+                notes.push("Environment Variables have changed. Relaunch to apply them; the flag comparison and revert controls do not include these variables.");
+            }
             if (comparison.modelRootChanged) notes.push("You’ve changed the models folder. Reverting settings keeps your current folder.");
         }
         exclusions.textContent = notes.join(" ");
@@ -1234,6 +1242,17 @@
     function restoreFlagInputs(options) {
         const force = Boolean(options && options.force);
         const values = getFlagValues();
+        const environmentInput = document.getElementById("environment-variables");
+        if (environmentInput) {
+            if (force || document.activeElement !== environmentInput) environmentInput.value = values.custom_env ?? "";
+            const error = getFlagCore().parseEnvironmentVariables(values.custom_env).error;
+            environmentInput.setAttribute("aria-invalid", String(Boolean(error)));
+            const status = document.getElementById("environment-variables-status");
+            if (status) {
+                status.textContent = error || "";
+                status.classList.toggle("error", Boolean(error));
+            }
+        }
         const getFlags = dependencies.getFlags || (() => window.FLAGS || FLAGS);
         for (const f of getFlags()) {
             const el = document.getElementById("flag-" + f.id);

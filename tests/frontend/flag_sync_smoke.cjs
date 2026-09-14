@@ -1632,6 +1632,7 @@ async function verifyBenchmarkActions(page) {
     await page.waitForFunction(() => window.LlamaGui.processLifecycle.getSnapshot().phase === "running");
     assert.deepEqual(launches.at(-1), {
         tool: "llama-perplexity", args: [["-m", "models/smoke-model.gguf"], ["-f", "benchmarks/wiki.test.raw"]],
+        env: {},
     });
     await stop.click();
     await page.waitForFunction(() => document.querySelector("#benchmark-output-terminal").textContent.includes("Benchmark stopped"));
@@ -3675,8 +3676,30 @@ async function runScenario(browser, port, verify) {
         assert.ok(customState.args.includes("--chat-template-kwargs"));
         assert.ok(customState.args.includes('{"preserve_thinking":true}'));
 
+        const environmentText = "LLAMA_MMAP_RANDOM=1\nGGML_OP_OFFLOAD_MIN_BATCH=512";
+        await page.fill("#environment-variables", environmentText);
+        assert.deepEqual(await page.evaluate(() => window.LlamaGui.flagCore.getLaunchArgs().env), {
+            LLAMA_MMAP_RANDOM: "1", GGML_OP_OFFLOAD_MIN_BATCH: "512",
+        });
+        assert.equal(await page.evaluate(() => window.LlamaGui.flagCore.getFlagValues().custom_env), environmentText);
+        assert.equal(await page.evaluate(() => document.querySelector(".custom-launch-args-panel").nextElementSibling.className), "environment-variables-panel");
+        assert.equal(await page.evaluate(() => document.querySelector(".environment-variables-panel").nextElementSibling.id), "server-address");
+        const environmentRequest = await page.evaluate(() => buildManualLaunchRequest());
+        assert.equal(environmentRequest.env.GGML_OP_OFFLOAD_MIN_BATCH, "512");
+        assert.ok(!environmentRequest.args.flat().includes("GGML_OP_OFFLOAD_MIN_BATCH=512"));
+        await page.fill("#environment-variables", "GGML_OP_OFFLOAD_MIN_BATCH");
+        assert.match(await page.textContent("#environment-variables-status"), /line 1/);
+        assert.equal(await page.getAttribute("#environment-variables", "aria-invalid"), "true");
+        assert.match(await page.textContent("#command-preview-text"), /Cannot launch:/);
+        assert.equal(await page.locator("#btn-quick-launch").isDisabled(), true);
+        await page.evaluate(() => window.LlamaGui.flagCore.applyFlagValues({ custom_env: "GGML_OP_OFFLOAD_MIN_BATCH=256" }));
+        await page.locator("#model-select").focus();
+        await page.evaluate(() => window.LlamaGui.configFlagsUi.restoreFlagInputs());
+        assert.equal(await page.inputValue("#environment-variables"), "GGML_OP_OFFLOAD_MIN_BATCH=256");
+
         await page.evaluate(() => window.LlamaGui.flagCore.applyFlagValues({ custom_args: "--parallel 4" }));
         await page.waitForFunction(() => document.querySelector("#custom-launch-args")?.value === "--parallel 4");
+        assert.equal(await page.inputValue("#environment-variables"), "");
         assert.match(await page.textContent("#command-preview-text"), /--parallel 4/);
 
         await page.fill("#custom-launch-args", "--threads 'unterminated");
