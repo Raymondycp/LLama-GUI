@@ -709,7 +709,11 @@ def _memory_estimate_args(args: list[str]) -> list[str]:
     return filtered_args
 
 
-def estimate_memory(ctx: AppContext, tool: str, args_list: Optional[Iterable[Any]]) -> dict[str, Any]:
+def estimate_memory(ctx: AppContext, tool: str, args_list: Optional[Iterable[Any]], env: Any = None) -> dict[str, Any]:
+    try:
+        environment = normalize_process_env(env)
+    except ValueError as exc:
+        return {"error": str(exc)}
     allowed_tools = ctx.services.llama_tools or []
     if tool not in allowed_tools:
         return {"error": f"Unknown tool: {tool!r}"}
@@ -735,7 +739,7 @@ def estimate_memory(ctx: AppContext, tool: str, args_list: Optional[Iterable[Any
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            env=_build_process_env(ctx),
+            env={**_build_process_env(ctx), **environment},
             cwd=str(ctx.paths.root),
             timeout=30,
             check=False,
@@ -1034,6 +1038,28 @@ def get_active_llama_authorization(ctx: AppContext, fallback: str = "") -> str:
     return str(fallback or "")
 
 
+def normalize_process_env(value: Any) -> dict[str, str]:
+    """Validate per-launch llama.cpp tuning overrides without changing os.environ."""
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise ValueError("Environment Variables must be an object of names and string values.")
+    clean = {}
+    size = 0
+    for name, setting in value.items():
+        if (not isinstance(name, str)
+                or not re.fullmatch(r"(?:LLAMA_|GGML_)[A-Z0-9_]+", name)
+                or name.startswith(("LLAMA_GUI_", "LLAMA_ARG_"))):
+            raise ValueError("Environment Variables require LLAMA_ or GGML_ names; LLAMA_GUI_ and LLAMA_ARG_ settings belong in the existing controls.")
+        if not isinstance(setting, str) or any(char in setting for char in "\0\r\n"):
+            raise ValueError("Environment Variable values must be single-line strings without null characters.")
+        size += len(name) + len(setting) + 2
+        if size - 1 > 16000:
+            raise ValueError("Environment Variables must not exceed 16,000 characters.")
+        clean[name] = setting
+    return clean
+
+
 def _build_process_env(ctx: AppContext) -> dict[str, str]:
     env = os.environ.copy()
     cfg = _load_config_safe(ctx)
@@ -1217,6 +1243,7 @@ def preflight_launch(
     tool: Any,
     args_list: Any,
     fingerprint_data: Any,
+    env: Any = None,
 ) -> dict[str, Any]:
     allowed_tools = tuple(ctx.services.llama_tools or ())
     if not isinstance(tool, str):
@@ -1227,6 +1254,7 @@ def preflight_launch(
         return {"error": "Model switching requires llama-server."}
 
     try:
+        normalize_process_env(env)
         flat_args = _normalize_preflight_args(args_list)
         preset_fingerprint = compute_preset_fingerprint(fingerprint_data)
     except ValueError as exc:
@@ -1274,8 +1302,10 @@ def launch_process(
     args_list: Optional[Iterable[Any]],
     launch_context: Any = None,
     launch_settings: Any = None,
+    env: Any = None,
 ) -> dict[str, Any]:
     try:
+        environment = normalize_process_env(env)
         normalized_launch_context = normalize_launch_context(launch_context)
         normalized_launch_settings = normalize_launch_settings(launch_settings)
     except ValueError as exc:
@@ -1333,6 +1363,7 @@ def launch_process(
         args = [str(exe_path), *flat_launch_args]
         launch_api_keys = parse_launch_api_keys(flat_launch_args) if tool == "llama-server" else ()
         env = _build_process_env(ctx)
+        env.update(environment)
 
         process = None
         generation = None

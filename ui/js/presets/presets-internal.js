@@ -98,7 +98,7 @@ function getKnownPresetFlagIds() {
     const flags = Array.isArray(window.FLAGS)
         ? window.FLAGS
         : (typeof FLAGS !== "undefined" && Array.isArray(FLAGS) ? FLAGS : []);
-    return new Set(flags.map((flag) => flag && flag.id).filter(Boolean));
+    return new Set([...flags.map((flag) => flag && flag.id).filter(Boolean), "custom_env"]);
 }
 
 function normalizeImportedPresetData(data) {

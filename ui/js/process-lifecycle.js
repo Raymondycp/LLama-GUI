@@ -394,6 +394,7 @@
                 throw new Error("Process lifecycle dependency missing: fetchJson");
             }
             const launchBody = { tool: request.tool, args: request.args };
+            if (request.env !== undefined) launchBody.env = request.env;
             if (request.launch_context !== undefined) launchBody.launch_context = request.launch_context;
             if (request.launch_settings !== undefined) launchBody.launch_settings = request.launch_settings;
             launchResult = await deps.fetchJson("/api/launch", {

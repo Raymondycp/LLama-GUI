@@ -229,6 +229,7 @@ function getPresetFlagLabelMap() {
 }
 
 function getPresetFlagLabel(flagId) {
+    if (flagId === "custom_env") return "Environment Variables";
     return getPresetFlagLabelMap().get(flagId) || String(flagId).replace(/_/g, " ");
 }
 

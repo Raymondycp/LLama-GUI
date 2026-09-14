@@ -321,6 +321,7 @@ const facadeKeyContracts = {
         "normalizeSpeculativeFlagValues",
         "normalizeStoredFlagValue",
         "parseCustomLaunchArgs",
+        "parseEnvironmentVariables",
         "patchFlagValues",
         "quoteArg",
         "redactSensitiveTokens",
