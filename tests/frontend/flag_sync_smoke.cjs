@@ -216,7 +216,25 @@ async function verifyNgramSimple(page) {
     assert.equal(await page.inputValue("#flag-ngram_simple_size_m"), "16");
     assert.equal(await page.locator('#section-quick-launch input[id*="ngram_simple"]').count(), 0);
     await page.evaluate(() => window.LlamaGui.flagCore.setMultipleFlagValues({
+        model_draft: "models/draft.gguf", hf_repo_draft: "org/draft", draft_max: 8,
+    }));
+    await page.fill("#config-search", "speculative type");
+    assert.equal(await page.inputValue("#flag-spec_type"), "auto");
+    await page.selectOption("#flag-spec_type", "none");
+    assert.equal(await page.evaluate(() => window.LlamaGui.flagCore.getFlagValues().spec_type), "none");
+    command = await page.textContent("#command-preview-text");
+    assert.match(command, /--spec-type none(?: |$)/);
+    assert.doesNotMatch(command, /(?:-md|-hfd|--spec-draft-n-max|--spec-ngram-)/);
+    await page.fill("#config-search", "context");
+    await page.fill("#config-search", "speculative type");
+    assert.equal(await page.inputValue("#flag-spec_type"), "none", "rebuilding Configure retains explicit None");
+    await page.selectOption("#flag-spec_type", "auto");
+    command = await page.textContent("#command-preview-text");
+    assert.match(command, /--spec-type ngram-mod,ngram-simple(?: |$)/);
+    assert.match(command, /-md models\/draft.gguf/);
+    await page.evaluate(() => window.LlamaGui.flagCore.setMultipleFlagValues({
         ngram_simple: false, ngram_mod: false, ngram_simple_size_n: undefined, ngram_simple_size_m: undefined,
+        model_draft: undefined, hf_repo_draft: undefined, draft_max: undefined,
     }));
     await page.fill("#config-search", "");
 }

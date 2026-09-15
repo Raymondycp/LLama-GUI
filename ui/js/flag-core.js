@@ -70,7 +70,7 @@
     ]);
 
     function getSpeculativeTypeParts(values) {
-        const raw = String((values || {}).spec_type || "none").trim();
+        const raw = String((values || {}).spec_type || "auto").trim();
         return raw.split(",").map(value => value.trim()).filter(Boolean);
     }
 
@@ -105,6 +105,7 @@
 
     function getCombinedSpeculativeType(values) {
         const specTypes = getSpeculativeTypeParts(values);
+        if (specTypes.includes("none")) return "none";
         const draftType = specTypes.find(type => draftSpeculativeTypes.has(type));
         return [
             draftType,
@@ -153,7 +154,7 @@
         }
         if (specTypes.includes("ngram-mod") || specTypes.includes("ngram-map-k4v") || specTypes.includes("ngram-simple")) {
             const withoutNgram = specTypes.filter(type => type !== "ngram-mod" && type !== "ngram-map-k4v" && type !== "ngram-simple");
-            normalized.spec_type = withoutNgram.join(",") || "none";
+            normalized.spec_type = withoutNgram.join(",") || "auto";
         }
         return normalized;
     }

@@ -790,6 +790,47 @@ function launchResult() {
 for (const tool of ["llama-server", "llama-cli"]) {
     vm.runInContext(`
         window.LlamaGui.flagCore.setCurrentToolValue(${JSON.stringify(tool)});
+        window.LlamaGui.flagCore.applyFlagValues({});
+    `, context);
+    assert.equal(vm.runInContext("window.LlamaGui.flagCore.getFlagValues().spec_type", context), "auto");
+    assert.ok(!flatLaunchArgs().includes("--spec-type"), "Auto leaves type detection to llama.cpp");
+    vm.runInContext(`window.LlamaGui.flagCore.applyFlagValues({
+        spec_type: "none", model_draft: "draft.gguf", hf_repo_draft: "org/draft",
+        draft_max: 8, draft_min: 2, draft_p_min: 0.5, draft_p_split: 0.1,
+        gpu_layers_draft: "all", draft_device: "CUDA0",
+        draft_cache_type_k: "q8_0", draft_cache_type_v: "q8_0",
+        ngram_simple: true, ngram_mod: true, ngram_map_k4v: true,
+        ngram_simple_size_n: 8, ngram_simple_size_m: 16,
+        ngram_mod_n_match: 12, ngram_mod_n_min: 24, ngram_mod_n_max: 48,
+        ngram_map_k4v_size_n: 8, ngram_map_k4v_size_m: 16, ngram_map_k4v_min_hits: 2,
+        ctx_size_draft: 2048, spec_draft_adaptive: true, temperature: 0.42,
+    })`, context);
+    let args = Array.from(flatLaunchArgs());
+    assert.deepEqual(args.filter(arg => arg.startsWith("--spec-")), ["--spec-type"]);
+    assert.equal(args[args.indexOf("--spec-type") + 1], "none");
+    for (const flag of ["-md", "-hfd", "-devd", "-ctkd", "-ctvd", "-cd"]) {
+        assert.ok(!args.includes(flag), `${flag} must be omitted when speculation is disabled`);
+    }
+    assert.equal(args[args.indexOf("--temp") + 1], "0.42", "unrelated flags remain active");
+    assert.equal(vm.runInContext("isSpeculativeDecodingEnabled(window.LlamaGui.flagCore.getFlagValues())", context), false);
+    vm.runInContext('window.LlamaGui.flagCore.setFlagValue("spec_type", "auto")', context);
+    args = Array.from(flatLaunchArgs());
+    assert.equal(args[args.indexOf("--spec-type") + 1], "ngram-mod,ngram-map-k4v,ngram-simple");
+    assert.equal(args[args.indexOf("-md") + 1], "draft.gguf", "switching back restores saved draft arguments");
+    vm.runInContext(`window.LlamaGui.flagCore.setMultipleFlagValues({
+        ngram_simple: false, ngram_mod: false, ngram_map_k4v: false,
+    })`, context);
+    args = Array.from(flatLaunchArgs());
+    assert.ok(!args.includes("--spec-type"), "Auto with a draft model omits the type argument");
+    assert.ok(args.includes("-md") && args.includes("-hfd"));
+    vm.runInContext('window.LlamaGui.flagCore.applyFlagValues({ spec_type: "none" })', context);
+    args = Array.from(flatLaunchArgs());
+    assert.equal(args[args.indexOf("--spec-type") + 1], "none", "None emits even without draft settings");
+}
+
+for (const tool of ["llama-server", "llama-cli"]) {
+    vm.runInContext(`
+        window.LlamaGui.flagCore.setCurrentToolValue(${JSON.stringify(tool)});
         window.LlamaGui.flagCore.replaceFlagValues(getDefaultValues());
         window.LlamaGui.flagCore.setFlagValue("ngram_simple", true);
     `, context);
@@ -1166,7 +1207,7 @@ vm.runInContext('window.LlamaGui.flagCore.setCurrentToolValue("llama-server")', 
         model: "",
         flags: { spec_type: "ngram-mod", ngram_mod_n_match: 12 },
     })`, context);
-    assert.equal(legacyNgram.flags.spec_type, "none", "legacy ngram spec_type should migrate to the draft-only field");
+    assert.equal(legacyNgram.flags.spec_type, "auto", "legacy ngram spec_type should migrate to the draft-only field");
     assert.equal(legacyNgram.flags.ngram_mod, true, "legacy ngram spec_type should enable the shared ngram control");
     assert.equal(
         legacyNgram.flags.ngram_mod_n_match,
@@ -1179,7 +1220,7 @@ vm.runInContext('window.LlamaGui.flagCore.setCurrentToolValue("llama-server")', 
         model: "",
         flags: { spec_type: "ngram-map-k4v", ngram_map_k4v_size_n: 10 },
     })`, context);
-    assert.equal(legacyNgramMap.flags.spec_type, "none", "legacy map spec_type should migrate to the draft-only field");
+    assert.equal(legacyNgramMap.flags.spec_type, "auto", "legacy map spec_type should migrate to the draft-only field");
     assert.equal(legacyNgramMap.flags.ngram_map_k4v, true, "legacy map spec_type should enable the shared map control");
     assert.equal(
         legacyNgramMap.flags.ngram_map_k4v_size_n,
@@ -1209,7 +1250,7 @@ vm.runInContext('window.LlamaGui.flagCore.setCurrentToolValue("llama-server")', 
         flags: { spec_type: "ngram-simple", ngram_simple: false, ngram_simple_size_n: 8 },
     })`, context);
     assert.equal(disabledSimple.flags.ngram_simple, false, "explicit toggle wins over an imported spec_type");
-    assert.equal(disabledSimple.flags.spec_type, "none");
+    assert.equal(disabledSimple.flags.spec_type, "auto");
     assert.equal(disabledSimple.flags.ngram_simple_size_n, 8);
 
     for (const [value, mode] of [
