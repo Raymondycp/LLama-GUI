@@ -20,7 +20,7 @@ function getFlagsByCategory(tool) {
 }
 
 function getSpeculativeTypeParts(values) {
-    const raw = String((values || {}).spec_type || "none").trim();
+    const raw = String((values || {}).spec_type || "auto").trim();
     return raw.split(",").map(value => value.trim()).filter(Boolean);
 }
 
@@ -50,10 +50,11 @@ function isNgramMapK4vEnabled(values) {
 function isSpeculativeDecodingEnabled(values) {
     const cfg = values || {};
     const specTypes = getSpeculativeTypeParts(cfg);
+    if (specTypes.includes("none")) return false;
     return Boolean(
         cfg.model_draft
         || cfg.hf_repo_draft
-        || specTypes.some(type => type !== "none")
+        || specTypes.some(type => type !== "auto")
         || isNgramModEnabled(cfg)
         || isNgramMapK4vEnabled(cfg)
         || isNgramSimpleEnabled(cfg)
@@ -62,18 +63,24 @@ function isSpeculativeDecodingEnabled(values) {
 
 function hasDraftModelSpeculation(values) {
     const cfg = values || {};
+    if (getSpeculativeTypeParts(cfg).includes("none")) return false;
     if (cfg.model_draft || cfg.hf_repo_draft) return true;
     return getSpeculativeTypeParts(cfg)
         .some(type => new Set(["draft-simple", "draft-eagle3", "draft-dflash", "draft-dspark", "draft-mtp"]).has(type));
 }
 
 function shouldOmitSpeculativeFlag(f, values) {
+    if (getSpeculativeTypeParts(values).includes("none")) {
+        return f.id !== "spec_type"
+            && (f.category === "speculative" || f.id === "model_draft" || f.id === "hf_repo_draft"
+                || f.id === "spec_draft_adaptive");
+    }
     if (f.category !== "speculative") return false;
     if (!isSpeculativeDecodingEnabled(values)) return true;
 
     if (f.id === "spec_type") {
         const specTypes = getSpeculativeTypeParts(values)
-            .filter(type => type !== "none" && type !== "ngram-mod" && type !== "ngram-map-k4v" && type !== "ngram-simple");
+            .filter(type => type !== "auto" && type !== "ngram-mod" && type !== "ngram-map-k4v" && type !== "ngram-simple");
         return specTypes.length === 0 && !isNgramModEnabled(values) && !isNgramMapK4vEnabled(values) && !isNgramSimpleEnabled(values);
     }
 

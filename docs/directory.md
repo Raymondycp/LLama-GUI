@@ -1108,6 +1108,8 @@ Defined in `BUILTIN_SAMPLER_PRESETS` in `ui/js/app-data.js` and managed by `ui/j
 
 ### Ngram Simple
 
+Speculative Type defaults to **Auto**, which omits `--spec-type` unless an independent n-gram method is enabled. **None** explicitly emits `--spec-type none` and suppresses UI-managed draft model (`-md`), HF draft repo (`-hfd`), and all other speculative arguments. Saved draft and n-gram settings remain available when switching back. Presets containing explicit `spec_type: "none"` now disable speculation; legacy n-gram-only type lists normalize to Auto plus their independent toggles.
+
 Configure's Speculative Decoding category includes an opt-in **Ngram Simple** submenu with `--spec-ngram-simple-size-n` (match tokens, upstream default 12) and `--spec-ngram-simple-size-m` (maximum draft tokens, upstream default 48). Blank tuning values use the binary's defaults; disabled tuning values remain saved but are not emitted. There are no Ngram Simple controls in Quick Launch.
 
 The shared `ngram_simple` boolean joins existing speculative methods in one `--spec-type` argument. Presets importing `ngram-simple` inside `spec_type` normalize to the independent toggle. Both Simple and Mod describe upstream's fallback behavior: Simple is tried first, and Mod can be used when Simple produces no draft, not when a proposed draft is rejected. Other enabled methods follow upstream priority; CLI list order does not set priority. Compare each method individually before combining them.
