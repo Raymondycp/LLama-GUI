@@ -17,7 +17,7 @@
 
 - **Backend:** Python stdlib `http.server` (no framework). Serves static `ui/` and provides JSON/SSE API endpoints.
 - **Frontend:** Vanilla HTML/CSS/JS loaded as ordered global `<script>` tags (no bundler, no ES modules). Each module attaches to `window.LlamaGui`.
-- **Entry point:** `python server.py` → 26-line compat wrapper → delegates to `backend/app.py`.
+- **Entry point:** `python server.py` → compat wrapper with early crash logging → delegates to `backend/app.py`.
 - **GUI server:** `127.0.0.1:5240` by default; `LLAMA_GUI_HOST` and `LLAMA_GUI_PORT` can override the bind address for headless/LAN access.
 - **llama-server:** Runs separately (default port 8080) as a subprocess.
 - **Dependencies:** `certifi` (SSL cert bundle), `ddgs` (DuckDuckGo web search), `huggingface_hub` (HF model downloads), `hf-xet` (Xet-accelerated HF transfers).
@@ -41,6 +41,7 @@
 |---|---|
 | `server.py` | Thin compatibility entrypoint — delegates to `backend.app` |
 | `backend/` | Python package: HTTP server, routes, services, state |
+| `logs/` | Automatic GUI diagnostics, one timestamped log per process; retains the 10 newest session logs |
 | `ui/` | Static frontend: `index.html`, `js/`, `css/`, `templates/` |
 | `ui/js/flags/` | Ordered pure-data modules for flag definitions |
 | `ui/templates/` | 14 bundled Jinja chat template files |
@@ -73,6 +74,7 @@
 | Module | Role |
 |--------|------|
 | `backend/app.py` | HTTP handler, CORS, proxy, route registry, main() |
+| `backend/diagnostics.py` | Early, idempotent stderr capture and native fault tracebacks; preserves console output and recent session logs |
 | `backend/config.py` | Path constants, env var parsing, web search limits; deliberately free of optional third-party imports so startup diagnostics work on a minimal Python environment |
 | `backend/context.py` | `AppContext`, `AppPaths`, `ServerConfig`, `BackendServices` dataclasses |
 | `backend/state.py` | `ServerState` dataclass, `AtomicDict` (lock-protected dict) |
@@ -94,6 +96,7 @@
 - Native file/directory pickers (tkinter on Windows/Linux, `osascript` on macOS) for selecting model files, paths, and the active model root.
 - CORS origin validation restricts API access to loopback origins for the configured GUI port, trusted `LLAMA_GUI_ALLOWED_HOSTS` entries when wildcard-bound, and the active tunnel URL.
 - Graceful shutdown/restart with port availability polling.
+- Automatic GUI crash logs under `logs/`, enabled before application imports when executing `server.py` or `python -m backend.app`, and on programmatic `main()` startup. See [crash diagnostics](troubleshooting.md#llama-gui-crashes-or-disappears).
 
 ### Route Modules (`backend/routes/`)
 
