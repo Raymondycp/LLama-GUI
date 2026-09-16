@@ -52,7 +52,7 @@ Special thanks to ggml-org for [llama.cpp](https://github.com/ggml-org/llama.cpp
 
 ## Requirements
 
-- Python 3.9+, `pip`, and virtual environment support (`python -m venv`)
+- Python 3.9+, `pip`, and virtual environment support (or [uv](https://astral.sh/uv), which the installers and the in-app updater detect and use automatically)
 - Internet access for release downloads, optional app updates, and optional Chat web search
 - A supported OS/architecture for the prebuilt `llama.cpp` binaries you want
 
@@ -89,6 +89,8 @@ cd LLama-GUI
 Install dependencies:
 - macOS/Linux: `./install.sh`
 - Windows: `windows_install.bat`
+
+If [uv](https://astral.sh/uv) is on PATH, setup uses it automatically — the venv is created with `uv venv --seed` and requirements are installed with `uv pip install`. The in-app updater prefers uv the same way. The plain `pip` flow remains fully supported.
 
 If macOS/Linux reports `permission denied`, restore the executable bit:
 
