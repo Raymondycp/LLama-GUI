@@ -1,3 +1,6 @@
+# Crash logging must start before imports that can fail during app startup.
+# ruff: noqa: E402
+
 import http.server
 import json
 import platform
@@ -8,6 +11,11 @@ import sys
 import time
 import urllib.request
 import urllib.parse
+
+from backend import diagnostics
+
+if __name__ == "__main__":
+    diagnostics.initialize()
 
 from backend.config import (
     APP_LOGO_FILE,
@@ -989,6 +997,7 @@ API_ROUTER = (
 
 
 def main():
+    diagnostics.initialize()
     port = GUI_PORT
     APP_CONTEXT.state.restart_requested.clear()
     for d in [
@@ -1022,6 +1031,7 @@ def main():
         sys.exit(1)
 
     print(f"Llama GUI running at {build_http_origin(GUI_HOST, port)}")
+    print(f"[diagnostics] GUI listening at {build_http_origin(GUI_HOST, port)}", file=sys.stderr)
     if GUI_HOST in WILDCARD_BIND_HOSTS:
         print(f"Remote access enabled. Open http://<this-server-lan-ip>:{port} from a trusted machine.")
     print("Press Ctrl+C to stop the server.")
@@ -1031,7 +1041,9 @@ def main():
         pass
     finally:
         lifecycle_service.cleanup_gui_server(APP_CONTEXT)
-    return lifecycle_service.get_gui_exit_code(APP_CONTEXT)
+    exit_code = lifecycle_service.get_gui_exit_code(APP_CONTEXT)
+    print(f"[diagnostics] GUI server stopped; exit code {exit_code}", file=sys.stderr)
+    return exit_code
 
 
 configure_services(APP_CONTEXT)

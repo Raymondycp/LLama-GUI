@@ -2,6 +2,29 @@
 
 Back to the [README](../README.md).
 
+## Llama GUI crashes or disappears
+
+Llama GUI automatically creates a timestamped `llama-gui-*.log` file in the
+checkout's `logs/` folder on every launch. No debug option or special launcher is
+needed. The log path is printed in the server terminal. After a crash, keep the
+file from that run; restarting creates a new file rather than overwriting it.
+The 10 newest session logs are retained, with older ones removed at startup when
+possible. Files are not rotated during a running session so native crash reporting
+can keep using the same open file descriptor.
+
+Logs include UTC timestamps, Python/runtime details, backend stderr messages,
+uncaught Python exceptions (including background threads), and native crash
+tracebacks when Python's fault handler can report them. Normal server shutdowns
+record the exit code. Existing console error output is preserved. This also works
+for silent launches, GUI restarts, and Pinokio's `server.py` entrypoint.
+
+These are GUI-server diagnostics; llama.cpp subprocess output remains in
+**Monitor**. Logs are local files and may contain paths and error details, so
+review them before sharing. If the log directory is unwritable, the server warns
+in its terminal and continues without file logging. A forced process kill, power
+loss, or hang may leave no final traceback; absence of a shutdown entry alone
+does not identify the cause.
+
 ## Port already in use
 
 App does not start at `http://127.0.0.1:5240`, or server launch fails on a taken port. Close the conflicting app or change its port.
