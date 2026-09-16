@@ -59,3 +59,21 @@ Run checks appropriate to the change; use `docs/tests.md` to select focused unit
 | Full frontend suite | `npm test` |
 
 Use the **project venv** for backend tests (`.venv/bin/python` on Unix). System Python may lack runtime dependencies and produce misleading failures.
+
+## Environment: uv
+
+`uv` is a supported alternative to `pip` for the project venv; everything works
+the same whether the venv was created with `python -m venv` or `uv venv`.
+
+- The backend install paths are uv-aware: `install.sh` uses `uv venv --seed` +
+  `uv pip install` when `uv` is on PATH (falling back to `python -m venv` +
+  `pip`), and the in-app updater runs `uv pip install --python <sys.executable>`
+  when available (`backend/services/git_update.py:dependency_install_command`),
+  otherwise the venv's own `pip`.
+- `--seed` is required when creating a venv at all: `install.sh`, the in-app
+  updater, and shell workflows that still call `python -m pip` all assume pip
+  exists in the venv. Recreating with a plain (pip-less) `uv venv` breaks them.
+- There is no `pyproject.toml`, so manage dependencies with
+  `uv pip install -r requirements.txt` — do not use `uv sync`.
+- Startup scripts (`mac_linux_start.sh`, `mac_linux_silent_start.sh`) only
+  execute `.venv/bin/python`, so they are uv-agnostic.

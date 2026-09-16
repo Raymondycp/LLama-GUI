@@ -5744,6 +5744,34 @@ class GitUpdateRouteTests(unittest.TestCase):
         self.assertIn("pip", args)
         self.assertIn("install", args)
 
+    def test_install_deps_prefers_uv_when_available(self):
+        (self.ctx.paths.root / "requirements.txt").write_text("requests\n")
+        with (
+            mock.patch.object(srv.shutil, "which", return_value="/usr/local/bin/uv"),
+            mock.patch.object(srv.subprocess, "run") as mock_run,
+        ):
+            mock_run.return_value = self.proc_result(stdout="Successfully installed")
+            result = srv.install_python_dependencies(self.ctx)
+        self.assertTrue(result["installed"])
+        args = mock_run.call_args[0][0]
+        self.assertEqual(args[0], "uv")
+        self.assertIn("pip", args)
+        self.assertIn("--python", args)
+
+    def test_install_deps_falls_back_to_pip_without_uv(self):
+        (self.ctx.paths.root / "requirements.txt").write_text("requests\n")
+        with (
+            mock.patch.object(srv.shutil, "which", return_value=None),
+            mock.patch.object(srv.subprocess, "run") as mock_run,
+        ):
+            mock_run.return_value = self.proc_result(stdout="Successfully installed")
+            result = srv.install_python_dependencies(self.ctx)
+        self.assertTrue(result["installed"])
+        args = mock_run.call_args[0][0]
+        self.assertEqual(args[0], srv.sys.executable)
+        self.assertIn("-m", args)
+        self.assertIn("pip", args)
+
     def test_install_deps_subprocess_fails(self):
         (self.ctx.paths.root / "requirements.txt").write_text("bad_package\n")
         with mock.patch.object(srv.subprocess, "run") as mock_run:

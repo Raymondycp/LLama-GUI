@@ -23,9 +23,21 @@ if ! "$PY_CMD" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 9) 
     exit 1
 fi
 
+if command -v uv >/dev/null 2>&1; then
+    UV_AVAILABLE=1
+else
+    UV_AVAILABLE=0
+fi
+
 if [ ! -d ".venv" ]; then
     echo "Creating local virtual environment..."
-    "$PY_CMD" -m venv .venv
+    if [ "$UV_AVAILABLE" -eq 1 ]; then
+        # --seed keeps pip available for the in-app updater and for shell
+        # workflows that still call "python -m pip".
+        uv venv --seed --python "$PY_CMD" .venv
+    else
+        "$PY_CMD" -m venv .venv
+    fi
 fi
 
 VENV_PYTHON="$SCRIPT_DIR/.venv/bin/python"
@@ -43,11 +55,16 @@ if [ "$(uname -s)" = "Linux" ] && ! "$VENV_PYTHON" -c 'import tkinter' >/dev/nul
     echo "Llama GUI will still install; add Tk and restart it to enable Browse/Change dialogs."
 fi
 
-echo "Upgrading pip..."
-"$VENV_PYTHON" -m pip install --upgrade pip
+if [ "$UV_AVAILABLE" -eq 1 ]; then
+    echo "Installing Python dependencies from requirements.txt with uv..."
+    uv pip install --python "$VENV_PYTHON" -r requirements.txt
+else
+    echo "Upgrading pip..."
+    "$VENV_PYTHON" -m pip install --upgrade pip
 
-echo "Installing Python dependencies from requirements.txt..."
-"$VENV_PYTHON" -m pip install -r requirements.txt
+    echo "Installing Python dependencies from requirements.txt..."
+    "$VENV_PYTHON" -m pip install -r requirements.txt
+fi
 
 mkdir -p llama/custom/bin llama/custom/grammars
 mkdir -p llama/custom-02/bin llama/custom-02/grammars

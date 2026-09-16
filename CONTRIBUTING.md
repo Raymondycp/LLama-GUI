@@ -31,6 +31,11 @@ Then install the Python dependencies **into the venv**:
 .venv/bin/python -m pip install -r requirements.txt
 ```
 
+> **Prefer uv?** `uv venv --seed` (or `--seed --python 3.12`) and
+> `uv pip install -r requirements.txt` are drop-in equivalents; the setup,
+> `install.sh`, and the in-app updater all detect uv and use it automatically.
+> `--seed` matters: the updater and `install.sh` assume pip exists in the venv.
+
 > **Always use the venv Python.** System Python lacks `huggingface_hub` and
 > the other runtime dependencies, so tests fail with misleading import
 > errors deep inside unrelated modules. Every Python command below shows the

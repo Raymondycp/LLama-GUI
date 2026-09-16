@@ -2,6 +2,7 @@
 
 import os
 import re
+import shutil
 import subprocess
 import sys
 from typing import Any
@@ -231,6 +232,26 @@ def find_latest_release_tag(base_dir, upstream_ref):
     return {"tag": "", "error": ""}
 
 
+def dependency_install_command(requirements_path):
+    """Pick uv when available, else the venv's own pip.
+
+    ``uv pip install --python <sys.executable>`` installs into the interpreter
+    that is running the app (the project venv), while falling back to pip keeps
+    plain ``python -m venv`` setups working unchanged.
+    """
+    if shutil.which("uv"):
+        return [
+            "uv",
+            "pip",
+            "install",
+            "--python",
+            sys.executable,
+            "-r",
+            str(requirements_path),
+        ]
+    return [sys.executable, "-m", "pip", "install", "-r", str(requirements_path)]
+
+
 def install_python_dependencies(ctx: AppContext) -> dict[str, Any]:
     requirements_path = ctx.paths.root / "requirements.txt"
     if not requirements_path.exists():
@@ -238,7 +259,7 @@ def install_python_dependencies(ctx: AppContext) -> dict[str, Any]:
 
     try:
         res = subprocess.run(
-            [sys.executable, "-m", "pip", "install", "-r", str(requirements_path)],
+            dependency_install_command(requirements_path),
             cwd=str(ctx.paths.root),
             capture_output=True,
             text=True,
@@ -248,14 +269,14 @@ def install_python_dependencies(ctx: AppContext) -> dict[str, Any]:
         )
     except subprocess.TimeoutExpired:
         print(
-            f"[git_update] pip install timed out after {DEPENDENCY_INSTALL_TIMEOUT_SECONDS}s",
+            f"[git_update] dependency install timed out after {DEPENDENCY_INSTALL_TIMEOUT_SECONDS}s",
             file=sys.stderr,
         )
         return {"installed": False, "error": "Dependency installation timed out."}
     output = (res.stdout or res.stderr or "").strip()
     if res.returncode != 0:
         print(
-            f"[git_update] pip install failed: {(res.stderr or res.stdout or '').strip()}",
+            f"[git_update] dependency install failed: {(res.stderr or res.stdout or '').strip()}",
             file=sys.stderr,
         )
         return {
