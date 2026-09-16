@@ -11,6 +11,10 @@ set -euo pipefail
 #   - git, cmake, nvcc (CUDA toolkit), nproc
 #   - strip is optional; it is used to reduce binary size when available
 #
+# cmake and nvcc are also searched in a few common install locations that are
+# not on PATH by default (e.g. ~/.local/bin for a pip --user cmake, and
+# /usr/local/cuda/bin for the Ubuntu CUDA .deb toolkit).
+#
 # The target machine must have CUDA drivers installed.
 # Shared libraries (libcudart, libcublas, etc.) are NOT bundled.
 # ============================================================
@@ -42,7 +46,37 @@ die() {
 
 info "Checking prerequisites"
 
-for cmd in git cmake nvcc; do
+# Locate a required tool, probing common non-PATH install locations and
+# exposing the directory that contains it before any later command -v check.
+find_or_die() {
+    local name="$1"
+    shift
+    if command -v "$name" &>/dev/null; then
+        return 0
+    fi
+    local cand
+    for cand in "$@"; do
+        if [[ -x "$cand" ]]; then
+            PATH="$(dirname "$cand"):$PATH"
+            export PATH
+            info "  $name found at $cand (not on PATH; using it)"
+            return 0
+        fi
+    done
+    return 1
+}
+
+find_or_die cmake "$HOME/.local/bin/cmake" /usr/local/bin/cmake || \
+    die "'cmake' is not installed or not in PATH. Please install it before running this script."
+
+find_or_die nvcc \
+    "${CUDA_HOME:-}/bin/nvcc" \
+    "${CUDA_PATH:-}/bin/nvcc" \
+    /usr/local/cuda/bin/nvcc \
+    /opt/cuda/bin/nvcc || \
+    die "'nvcc' (NVIDIA CUDA compiler) is not installed or not in PATH. Install the CUDA toolkit before running this script."
+
+for cmd in git; do
     if ! command -v "$cmd" &>/dev/null; then
         die "'$cmd' is not installed or not in PATH. Please install it before running this script."
     fi

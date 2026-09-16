@@ -56,7 +56,7 @@
 | `install.sh`, `windows_install.bat` | One-command installers: create the venv, install dependencies, add shortcuts |
 | `windows_start.bat`, `windows_startsilent.bat`, `mac_linux_start.sh`, `mac_linux_silent_start.sh` | User-facing launchers (silent variants hide the console window) |
 | `online_installers/` | Remote one-command installers behind the README Quick Start (`install-online.ps1` / `install-online.sh`) |
-| `Linux_compile_toolkit/` | `build_llama_cpp_cuda.sh`: builds a portable CUDA `llama.cpp` tarball from source (see `description.md`) |
+| `Linux_compile_toolkit/` | `build_llama_cpp_cuda.sh`: builds a portable CUDA `llama.cpp` tarball from source; `deploy-custom-slot.sh`: installs that tarball into the app's Custom backend slot (see `description.md`) |
 | `.launcher/` | Pinokio launcher integration (`launch-llama-gui.ps1`) |
 | `assets/` | App icon in Windows `.ico`, Linux `.png`, and macOS `.icns` formats (PNG/ICNS reuse the ICO's embedded 256px artwork) |
 | `requirements.txt` | Python runtime dependencies (annotated list in [Architecture](#architecture)) |

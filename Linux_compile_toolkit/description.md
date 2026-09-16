@@ -14,6 +14,12 @@ The script verifies that the following tools are installed and available in `PAT
 - `nproc` (for parallel compilation)
 - `strip` (optional; used to reduce binary size when available)
 
+`cmake` and `nvcc` are also probed in common install locations that are not on
+`PATH` by default and the script updates `PATH` when one is found there:
+- `cmake`: `~/.local/bin/cmake` (a `pip install --user` cmake) and `/usr/local/bin/cmake`
+- `nvcc`: `$CUDA_HOME/bin`, `$CUDA_PATH/bin`, `/usr/local/cuda/bin` (the Ubuntu
+  CUDA `.deb` toolkit), and `/opt/cuda/bin`
+
 If required tools are missing, the script aborts with a clear error message. If `strip` is missing, the build continues and prints a warning.
 
 ### 2. Source Management
@@ -68,3 +74,31 @@ Finally, the script prints:
 ```
 
 The final tarball will be located in the `dist/` directory.
+
+## Deploying a build into Llama GUI
+
+### deploy-custom-slot.sh
+
+`deploy-custom-slot.sh` installs one of the produced tarballs straight into the
+app's **Custom** backend slot (`llama/custom/`), with no network download:
+
+```bash
+./deploy-custom-slot.sh                 # newest archive in dist/, slot "custom"
+./deploy-custom-slot.sh path/to/pkg.tar.gz custom-02
+```
+
+Behavior, mirroring the app's own custom-backend flow:
+
+- **Flat extraction:** binaries and shared libraries go into `llama/<slot>/bin/`
+  and `*.gbnf`/`*.json` into `llama/<slot>/grammars/`.
+- **Runtime probe first:** `llama-cli --version` must run against the staged
+  files before the live slot is replaced, so a build that cannot start on this
+  machine never clobbers a working slot.
+- **Atomic swap:** the previous `bin/` is kept as `bin.old` until the new one is
+  in place and probed, then removed.
+- **Config:** `config.json` is updated exactly like "Activate Custom" in the app
+  (`version=custom`, `backend=<slot>`, `tag=custom`). If an official backend was
+  active, its name/tag/version are remembered as `official_install` so it can be
+  restored later.
+- **Restart:** if Llama GUI is already running, restart it after deployment so
+  the Status page reads the new build.
